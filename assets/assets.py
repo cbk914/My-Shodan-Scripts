@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # assets.py
-# Search SHODAN for assets of a specific comapany
+# Search SHODAN for assets of a specific company
 #
 # Author: random_robbie
 
@@ -33,7 +33,7 @@ def test_host (IP,PORT):
 			print ("[*] OOOOH we have a live host [*]\n")
 		else:
 			print "Port is not open"
-
+		sock.close()
 			
 	except KeyboardInterrupt:
 		print ("Ctrl-c pressed ...")
@@ -42,11 +42,7 @@ def test_host (IP,PORT):
 	except Exception as e:
 		print (e)
 		print ("[*] Nothing Found on IP:"+IP+" [*]\n")
-	
 
-
-
-	
 	
 try:
         # Setup the api
