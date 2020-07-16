@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # F5.py
 # Search SHODAN for F5 BIG IP vulnerable devices
